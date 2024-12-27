@@ -7,6 +7,9 @@
 #define MAX_EXERCICIOS 100
 #define MAX_SUBMISSOES 10000
 FILE *ficheiroEstudantes;
+FILE *ficheiroFichas;
+FILE *ficheiroExercicios;
+FILE *ficheiroSubmissoes;
 
 //|||||||||||||||||||||||||||||||||||||||||||
 // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
@@ -57,9 +60,15 @@ typedef struct {
 } Submissao;
 
 //-------------------- Funções --------------------//
-void fetchData();
+void mainFetchData();
+int fetchDataEstudantesAndFichas();
+int fetchDataExerciciosAndSubmissoes();
+void getAndShowCountsOfFiles();
+
 void mainGestaoEstudantes();
 int menuGestaoEstudantes();
+void registerEstudante();
+
 void gestaoExercicios();
 void gestaoFichas();
 void gestaoSubmissoes();
@@ -90,10 +99,10 @@ int mainMenu() {
 }
 
 void main() {
-
+    Estudante listaEstudantes[MAX_ESTUDANTES];
     int opcao;
 
-    fetchData();
+    mainFetchData();
 
     do
     {
@@ -131,28 +140,96 @@ void main() {
     } while (opcao != 0);
 }
 
-void fetchData(){
-    ficheiroEstudantes = fopen("dados.dat", "r+b");
+#pragma region Iniciar Ficheiros
+
+void mainFetchData(){
+    int aux = fetchDataEstudantesAndFichas();
+    int aux2 = fetchDataExerciciosAndSubmissoes();
+    if(aux != 1 || aux2 != 1){
+        int *countEstudantes = 0, *countFichas = 0, *countExercicios = 0, *countSubmissoes= 0;
+        getAndShowCountsOfFiles(countEstudantes, countFichas, countExercicios, countSubmissoes);
+        printf("\nFicheiro aberto com sucesso!");
+        printf("\n\nEstudantes carregados: %d", countEstudantes);
+        printf("\nFichas carregadas: %d", countFichas);
+        printf("\nExercicios carregados: %d", countExercicios);
+        printf("\nSubmissoes carregadas: %d", countSubmissoes);
+        printf("\n\n(Pressione ENTER para continuar) ");
+        getchar();
+        system("cls");
+    }else{
+        printf("Erro na abertura/criacao dos ficheiros");
+    }
+}
+
+int fetchDataEstudantesAndFichas(){
+    int aux = 0;
+    ficheiroEstudantes = fopen("estudantes.dat", "r+b");
     if (ficheiroEstudantes == NULL) {
-        ficheiroEstudantes = fopen("dados.dat", "w+b");
+        ficheiroEstudantes = fopen("estudantes.dat", "w+b");
         if (ficheiroEstudantes == NULL) {
-            printf("Não foi possivel abrir o ficheiro!!!!");
-            return;
+            printf("Não foi possivel abrir os estudantes!!!!");
+            aux = 1;
         }
     }
 
+    ficheiroFichas = fopen("fichas.dat", "r+b");
+    if (ficheiroEstudantes == NULL) {
+        ficheiroEstudantes = fopen("fichas.dat", "w+b");
+        if (ficheiroEstudantes == NULL) {
+            printf("Não foi possivel abrir as fichas!!!!");
+            aux = 1;
+        }
+    }
+
+    return aux;
+}
+
+int fetchDataExerciciosAndSubmissoes(){
+    int aux = 0;
+    ficheiroExercicios = fopen("exercicios.dat", "r+b");
+    if (ficheiroEstudantes == NULL) {
+        ficheiroEstudantes = fopen("exercicios.dat", "w+b");
+        if (ficheiroEstudantes == NULL) {
+            printf("Não foi possivel abrir os exercicios!!!!");
+            aux = 1;
+        }
+    }
+
+    ficheiroSubmissoes = fopen("submissoes.dat", "r+b");
+    if (ficheiroEstudantes == NULL) {
+        ficheiroEstudantes = fopen("submissoes.dat", "w+b");
+        if (ficheiroEstudantes == NULL) {
+            printf("Não foi possivel abrir as submissoes!!!!");
+            aux = 1;
+        }
+    }
+
+    return aux;
+}
+
+void getAndShowCountsOfFiles(int *countEstudantes, int *countFichas, int *countExercicios, int *countSubmissoes){
     Estudante estudante;
-    int countEstudantes = 0;
     while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes)) {
         countEstudantes++;
     }
-    
-    printf("\nFicheiro aberto com sucesso!");
-    printf("\n\nEstudantes carregados: %d", countEstudantes);
-    printf("\n\n(Pressione ENTER para continuar) ");
-    getchar();
-    system("cls");
+
+    Ficha ficha;
+    while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas)) {
+        countFichas++;
+    }
+
+    Exercicio exercicio;
+    while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios)) {
+        countExercicios++;
+    }
+
+    Submissao submissao;
+    while (fread(&submissao, sizeof(Submissao), 1, ficheiroSubmissoes)) {
+        countSubmissoes++;
+    }
 }
+
+#pragma endregion
 
 #pragma region Gestao Estudantes
 
@@ -167,7 +244,7 @@ void mainGestaoEstudantes() {
                 break;
 
             case 2:
-                //registar OS MANOS
+                registerEstudante();
                 break;
 
             case 3:
@@ -206,6 +283,10 @@ int menuGestaoEstudantes(){
         aux = opcao - '0';
     }
     return aux;
+}
+
+void registerEstudante(){
+
 }
 
 #pragma endregion
