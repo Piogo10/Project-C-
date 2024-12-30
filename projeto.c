@@ -71,6 +71,8 @@ typedef struct {
 } Submissao;
 
 //-------------------- Funções --------------------//
+int menuMainAux();
+
 int mainFetchData();
 void fetchOnSuccess();
 void getCountFromFiles(int *countEstudantes, int *countFichas, int *countExercicos, int *countSubmissoes);
@@ -103,7 +105,10 @@ int isAnoBissexto(int year);
 int gestaoFichasRegisterQuestionDataAuxiliarDayTests(int aux, int mes, int ano, int input);
 void gestaoFichasRegisterGuardar(Ficha ficha);
 
-void gestaoSubmissoes();
+void mainGestaoSubmissoes();
+int menuGestaoSubmissoes();
+void gestaoSubmissoesListAll();
+
 void estatisticas();
 void saveData();
 void loadData();
@@ -131,45 +136,58 @@ int mainMenu() {
 }
 
 void main() {
-
     int opcao;
-
     opcao = mainFetchData();
-
     do
     {
         opcao = mainMenu();
-        switch (opcao)
-        {
-        case 1:
-            mainGestaoEstudantes();
-            break;
-        case 2:
-            mainGestaoExercicios();
-            break;
-        case 3:
-            mainGestaoFichas();
-            break;
-        case 4:
-            gestaoSubmissoes();
-            break;
-        case 5:
-            estatisticas();
-            break;
-        case 6:
-            saveData();
-            break;
-        case 7:
-            loadData();
-            break;
-        case 0:
-            return ;
-            break;
-        default:
-            printf("Opcao invalida\n");
+        switch (opcao){
+            case 1:
+                mainGestaoEstudantes();
+                break;
+            case 2:
+                if(menuMainAux() != 0){
+                    mainGestaoExercicios();
+                }else{
+                    printf("\nPorfavor insira uma ficha para que possa inserir exercicios.");
+                    printf("\n(Pressione ENTER para continuar) ");
+                    while (getchar() != '\n');
+                    getchar(); 
+                }
+                break;
+            case 3:
+                mainGestaoFichas();
+                break;
+            case 4:
+                mainGestaoSubmissoes();
+                break;
+            case 5:
+                estatisticas();
+                break;
+            case 6:
+                saveData();
+                break;
+            case 7:
+                loadData();
+                break;
+            case 0:
+                return ;
+                break;
+            default:
+                printf("Opcao invalida\n");
         }
-
     } while (opcao != 0);
+}
+
+int menuMainAux(){
+    Ficha ficha;
+    int aux = 0;
+    rewind(ficheiroFichas);
+    while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas)) {
+        aux++;
+        break;
+    }
+    return aux;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -777,9 +795,86 @@ void gestaoFichasRegisterGuardar(Ficha ficha){
 
 //-------------------------------------------------------------------------------------------------------------------------------
 
-void gestaoSubmissoes() {
-    printf("gestaoSubmissoes() not implemented yet.\n");
+#pragma region Submissoes
+
+void mainGestaoSubmissoes() {
+    int opcao;
+    do{
+        opcao = menuGestaoSubmissoes();
+        system("cls");
+        switch (opcao){
+            case 1:
+                gestaoSubmissoesListAll();
+                printf("\n(Pressione ENTER para continuar) ");
+                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
+                getchar(); 
+                break;
+
+            case 2:
+                //gestaoExercicosRegister();
+                printf("\n(Pressione ENTER para continuar) ");
+                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
+                getchar(); 
+                break;
+
+            case 3:
+            case 4:
+                printf("Opcao nao disponivel. Ainda esta em desenvolvimento");
+                printf("\n(Pressione ENTER para continuar) ");
+                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
+                getchar();      
+                break;
+            
+            case 0:
+                return ;
+                break;
+
+            default:
+                printf("Opcao invalida\n");
+                break;
+        }
+    }while (opcao != 0);
 }
+
+int menuGestaoSubmissoes(){
+    char opcao;
+    int aux = 9;
+
+    system("cls");
+    printf("\n--- Menu Gestao Submissoes ---\n");
+    printf("1. Consultar Submissoes\n");
+    printf("2. Inserir Submissoes\n");
+    printf("3. Eliminar Submissoes\n");
+    printf("4. Editar Submissoes\n");
+    printf("0. Sair\n");
+    printf("Escolha uma opcao: ");
+    scanf(" %c", &opcao);
+    if(isdigit(opcao)){
+        aux = opcao - '0';
+    }
+    return aux;
+}
+
+void gestaoSubmissoesListAll(){
+    Submissao submissao;
+
+    rewind(ficheiroSubmissoes); //para tipo voltar ao primeiro id
+
+    while (fread(&submissao, sizeof(Submissao), 1, ficheiroSubmissoes) == 1) {
+        printf("ID: %d\n", submissao.id);
+        printf("ID do Estudante: %d\n", submissao.estudanteID);
+        printf("ID da Ficha: %d\n", submissao.fichaiD);
+        printf("ID do Exercicio: %d\n", submissao.exercID);
+        printf("Datade Submissao: %02d/%02d/%d\n", submissao.dataSub.dia, submissao.dataSub.mes, submissao.dataSub.ano);
+        printf("Tipo: %d\n", submissao.linhasSol);
+        printf("Tipo: %d\n", submissao.nota);
+        printf("--------------------\n");
+    }
+}
+
+#pragma endregion
+
+//-------------------------------------------------------------------------------------------------------------------------------
 
 void estatisticas() {
     printf("estatisticas() not implemented yet.\n");
