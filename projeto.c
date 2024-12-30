@@ -12,7 +12,7 @@ FILE *ficheiroFichas;
 FILE *ficheiroExercicios;
 FILE *ficheiroSubmissoes;
 
-int nextEstundateID;
+int nextEstudanteID;
 int nextFichasID;
 int nextExerciciosID;
 int nextSubmissoesID;
@@ -79,6 +79,10 @@ int fetchDataExerciciosAndSubmissoes();
 
 void mainGestaoEstudantes();
 int menuGestaoEstudantes();
+void gestaoEstudantesListAll();
+void gestaoEstudantesRegister();
+void gestaoEstudantesRegisterQuestions(int passo, Estudante *estudante);
+void gestaoEstudantesRegisterGuardar(Estudante estudante);
 
 void mainGestaoExercicios();
 int menuGestaoExercicios();
@@ -195,7 +199,7 @@ void fetchOnSuccess(){
     
     getCountFromFiles(&countEstudantes, &countFichas, &countExercicos, &countSubmissoes);
 
-    nextEstundateID = countEstudantes + 1;
+    nextEstudanteID = countEstudantes + 1;
     nextFichasID = countFichas + 1;
     nextExerciciosID = countExercicos + 1;
     nextSubmissoesID = countSubmissoes + 1;
@@ -296,11 +300,17 @@ void mainGestaoEstudantes() {
         system("cls");
         switch (opcao){
             case 1:
-                //LISTAR OS MANOS
+                gestaoEstudantesListAll();
+                printf("\n(Pressione ENTER para continuar) ");
+                while (getchar() != '\n');
+                getchar(); 
                 break;
 
             case 2:
-                //registar OS MANOS
+                gestaoEstudantesRegister();
+                printf("\n(Pressione ENTER para continuar) ");
+                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
+                getchar(); 
                 break;
 
             case 3:
@@ -339,6 +349,66 @@ int menuGestaoEstudantes(){
         aux = opcao - '0';
     }
     return aux;
+}
+
+void gestaoEstudantesListAll(){
+    Estudante estudante; //numero, nome email
+
+    rewind(ficheiroEstudantes); //para tipo voltar ao primeiro id
+
+    while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes) == 1) { 
+        printf("ID: %d\n", estudante.id);
+        printf("Numero do Estudante: %d\n", estudante.numero);
+        printf("Nome: %s\n", estudante.nome);
+        printf("Email: %s\n", estudante.email);
+        printf("--------------------\n");
+    }
+}
+
+void gestaoEstudantesRegister(){
+    Estudante estudante = {0, 0, "Indefenido", "Indefenido"};
+    estudante.id = nextEstudanteID;
+
+    for (int i = 0; i < 4; i++)
+    {
+        system("cls");
+        printf("Adicionar Estudante--> \nID: %d \nNumero do Estudante: %d \nNome: %s \nEmail: %s \n\n\n", estudante.id, estudante.numero, estudante.nome, estudante.email);
+        gestaoEstudantesRegisterQuestions(i, &estudante);
+    }
+    char output;
+    do{
+        printf("Deseja guardar o novo estudante? (S/n)");
+        scanf(" %c", &output);
+        if(output != 'S' && output != 'n' && output != 's' && output != 'N')
+            printf("\nPorfavor insira apenas (S/n)\n\n");
+    }while(output != 'S' && output != 'n' && output != 's' && output != 'N');
+    if(output == 's' || output == 'S')
+        gestaoEstudantesRegisterGuardar(estudante);
+}
+
+void gestaoEstudantesRegisterQuestions(int passo, Estudante *estudante){
+    switch (passo)
+        {
+            case 0:
+                printf("Insira o Numero do Estudante: ");
+                scanf("%d", &(*estudante).numero);
+                break;
+            case 1:
+                printf("Insira o Nome: ");
+                scanf(" %30[^\n]", (*estudante).nome);
+                break;
+            case 2:
+                printf("Insira o Email: ");
+                scanf(" %10[^\n]", (*estudante).email);
+                break;
+        }
+}
+
+void gestaoEstudantesRegisterGuardar(Estudante estudante){
+    fwrite(&estudante, sizeof(Estudante), 1, ficheiroEstudantes);
+    fflush(ficheiroEstudantes);
+    nextEstudanteID++;
+    printf("\nEstudante guardado com Sucesso!");
 }
 
 #pragma endregion
