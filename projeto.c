@@ -85,6 +85,7 @@ int menuGestaoExercicios();
 void gestaoExercicosListAll();
 void gestaoExercicosRegister();
 void gestaoExerciciosRegisterQuestions(int passo, Exercicio *exercicio);
+void gestaoExerciciosRegisterQuestionIdFicha();
 void gestaoExerciciosRegisterGuardar(Exercicio exercicio);
 
 void mainGestaoFichas();
@@ -442,24 +443,44 @@ void gestaoExercicosRegister(){
 
 void gestaoExerciciosRegisterQuestions(int passo, Exercicio *exercicio){
     switch (passo)
-        {
-            case 0:
-                printf("Insira o Id da Ficha: ");
-                scanf("%d", &(*exercicio).fichaID);
-                break;
-            case 1:
-                printf("Insira o Nome: ");
-                scanf(" %30[^\n]", (*exercicio).nome);
-                break;
-            case 2:
-                printf("Insira a Dificuldade: ");
-                scanf(" %10[^\n]", (*exercicio).difuculdade);
-                break;
-            case 3:
-                printf("Insira o Tipo: ");
-                scanf(" %10[^\n]", (*exercicio).tipoSol);
-                break;
+    {
+        case 0:
+            printf("Insira o Id da Ficha: ");
+            gestaoExerciciosRegisterQuestionIdFicha();
+            break;
+        case 1:
+            printf("Insira o Nome: ");
+            scanf(" %30[^\n]", (*exercicio).nome);
+            break;
+        case 2:
+            printf("Insira a Dificuldade: ");
+            scanf(" %10[^\n]", (*exercicio).difuculdade);
+            break;
+        case 3:
+            printf("Insira o Tipo: ");
+            scanf(" %10[^\n]", (*exercicio).tipoSol);
+            break;
+    }
+}
+
+void gestaoExerciciosRegisterQuestionIdFicha(){
+    int input, aux = 0;
+    do
+    {
+        scanf("%d", &input);
+        Ficha ficha;
+        rewind(ficheiroFichas); //para tipo voltar ao primeiro id
+        while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
+            if(input == ficha.id){
+                aux = 1;
+                return;
+            }
         }
+        if(aux == 0){
+            printf("Nao foi possivel encontrar uma ficha com esse ID.");
+            printf("\nPorfavor insira novamente um ID: ");
+        }
+    } while (aux != 1);
 }
 
 void gestaoExerciciosRegisterGuardar(Exercicio exercicio){
