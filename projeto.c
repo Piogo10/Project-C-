@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h>
 
 #define MAX_ESTUDANTES 100
 #define MAX_FICHAS 10
@@ -71,7 +72,10 @@ typedef struct {
 } Submissao;
 
 //-------------------- Funções --------------------//
-int menuMainAux();
+int isThereAtLeastOneEstudante();
+int isThereAtLeastOneFicha();
+int isThereAtLeastOneExercicio();
+void opcaoIndisponivel();
 
 int mainFetchData();
 void fetchOnSuccess();
@@ -91,7 +95,7 @@ int menuGestaoExercicios();
 void gestaoExercicosListAll();
 void gestaoExercicosRegister();
 void gestaoExerciciosRegisterQuestions(int passo, Exercicio *exercicio);
-void gestaoExerciciosRegisterQuestionIdFicha();
+int gestaoExerciciosRegisterQuestionIdFicha();
 void gestaoExerciciosRegisterGuardar(Exercicio exercicio);
 
 void mainGestaoFichas();
@@ -108,6 +112,13 @@ void gestaoFichasRegisterGuardar(Ficha ficha);
 void mainGestaoSubmissoes();
 int menuGestaoSubmissoes();
 void gestaoSubmissoesListAll();
+void gestaoSubmissoesRegister();
+Data getCurrentDate();
+void gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao);
+int gestaoSubmissoesRegisterQuestionIdEstudante();
+int gestaoSubmissoesRegisterQuestionIdExercicioExiste(int idFicha);
+int gestaoSubmissoesRegisterQuestionIdExercicioDaFicha(int idExer, int idFicha);
+void gestaoSubmissoesRegisterGuardar(Submissao submissao);
 
 void estatisticas();
 void saveData();
@@ -146,7 +157,7 @@ void main() {
                 mainGestaoEstudantes();
                 break;
             case 2:
-                if(menuMainAux() != 0){
+                if(isThereAtLeastOneFicha() != 0){
                     mainGestaoExercicios();
                 }else{
                     printf("\nPorfavor insira uma ficha para que possa inserir exercicios.");
@@ -159,7 +170,14 @@ void main() {
                 mainGestaoFichas();
                 break;
             case 4:
-                mainGestaoSubmissoes();
+                if(isThereAtLeastOneEstudante() != 0 && isThereAtLeastOneFicha() != 0 && isThereAtLeastOneExercicio() != 0){
+                    mainGestaoSubmissoes();
+                }else{
+                    printf("\nPara inserir uma Submissao e necessario ter pelo menos: \n1 Estudante registado, 1 Ficha registada e 1 Exercicio registado.");
+                    printf("\n(Pressione ENTER para continuar) ");
+                    while (getchar() != '\n');
+                    getchar(); 
+                }
                 break;
             case 5:
                 estatisticas();
@@ -179,7 +197,18 @@ void main() {
     } while (opcao != 0);
 }
 
-int menuMainAux(){
+int isThereAtLeastOneEstudante(){
+    Estudante estudante;
+    int aux = 0;
+    rewind(ficheiroEstudantes);
+    while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes)) {
+        aux++;
+        break;
+    }
+    return aux;
+}
+
+int isThereAtLeastOneFicha(){
     Ficha ficha;
     int aux = 0;
     rewind(ficheiroFichas);
@@ -188,6 +217,24 @@ int menuMainAux(){
         break;
     }
     return aux;
+}
+
+int isThereAtLeastOneExercicio(){
+    Exercicio exercicio;
+    int aux = 0;
+    rewind(ficheiroExercicios);
+    while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios)) {
+        aux++;
+        break;
+    }
+    return aux;
+}
+
+void opcaoIndisponivel(){
+    printf("Opcao nao disponivel.");
+    printf("\n(Pressione ENTER para continuar) ");
+    while (getchar() != '\n');
+    getchar();   
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -323,28 +370,16 @@ void mainGestaoEstudantes() {
                 while (getchar() != '\n');
                 getchar(); 
                 break;
-
             case 2:
                 gestaoEstudantesRegister();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar(); 
                 break;
-
-            case 3:
-            case 4:
-                printf("Opcao nao disponivel. Ainda esta em desenvolvimento");
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar();      
-                break;
-            
             case 0:
                 return ;
                 break;
-
+            case 3:
+            case 4:
             default:
-                printf("Opcao invalida\n");
+                opcaoIndisponivel();
                 break;
         }
     }while (opcao != 0);
@@ -353,7 +388,6 @@ void mainGestaoEstudantes() {
 int menuGestaoEstudantes(){
     char opcao;
     int aux = 9;
-
     system("cls");
     printf("\n--- Menu Gestao Estudantes ---\n");
     printf("1. Consultar Estudantes\n");
@@ -371,9 +405,7 @@ int menuGestaoEstudantes(){
 
 void gestaoEstudantesListAll(){
     Estudante estudante; //numero, nome email
-
     rewind(ficheiroEstudantes); //para tipo voltar ao primeiro id
-
     while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes) == 1) { 
         printf("ID: %d\n", estudante.id);
         printf("Numero do Estudante: %d\n", estudante.numero);
@@ -386,7 +418,6 @@ void gestaoEstudantesListAll(){
 void gestaoEstudantesRegister(){
     Estudante estudante = {0, 0, "Indefenido", "Indefenido"};
     estudante.id = nextEstudanteID;
-
     for (int i = 0; i < 4; i++)
     {
         system("cls");
@@ -447,28 +478,16 @@ void mainGestaoExercicios() {
                 while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
                 getchar(); 
                 break;
-
             case 2:
                 gestaoExercicosRegister();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar(); 
                 break;
-
-            case 3:
-            case 4:
-                printf("Opcao nao disponivel. Ainda esta em desenvolvimento");
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar();      
-                break;
-            
             case 0:
                 return ;
                 break;
-
+            case 3:
+            case 4:
             default:
-                printf("Opcao invalida\n");
+                opcaoIndisponivel();
                 break;
         }
     }while (opcao != 0);
@@ -534,7 +553,7 @@ void gestaoExerciciosRegisterQuestions(int passo, Exercicio *exercicio){
     {
         case 0:
             printf("Insira o Id da Ficha: ");
-            gestaoExerciciosRegisterQuestionIdFicha();
+            (*exercicio).fichaID = gestaoExerciciosRegisterQuestionIdFicha();
             break;
         case 1:
             printf("Insira o Nome: ");
@@ -551,7 +570,7 @@ void gestaoExerciciosRegisterQuestions(int passo, Exercicio *exercicio){
     }
 }
 
-void gestaoExerciciosRegisterQuestionIdFicha(){
+int gestaoExerciciosRegisterQuestionIdFicha(){
     int input, aux = 0;
     do
     {
@@ -561,7 +580,7 @@ void gestaoExerciciosRegisterQuestionIdFicha(){
         while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
             if(input == ficha.id){
                 aux = 1;
-                return;
+                break;;
             }
         }
         if(aux == 0){
@@ -569,6 +588,8 @@ void gestaoExerciciosRegisterQuestionIdFicha(){
             printf("\nPorfavor insira novamente um ID: ");
         }
     } while (aux != 1);
+
+    return input;
 }
 
 void gestaoExerciciosRegisterGuardar(Exercicio exercicio){
@@ -596,28 +617,16 @@ void mainGestaoFichas() {
                 while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
                 getchar(); 
                 break;
-
             case 2:
                 gestaoFichasRegister();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar(); 
                 break;
-
-            case 3:
-            case 4:
-                printf("Opcao nao disponivel. Ainda esta em desenvolvimento");
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar();      
-                break;
-            
             case 0:
                 return ;
                 break;
-
+            case 3:
+            case 4:
             default:
-                printf("Opcao invalida\n");
+                opcaoIndisponivel();
                 break;
         }
     }while (opcao != 0);
@@ -657,11 +666,11 @@ void gestaoFichasListAll(){
 }
 
 void gestaoFichasRegister(){
-    Data data = {0, 0, 0};
+    Data data = getCurrentDate();
     Ficha ficha = {0, "Indefenido", 0, data};
     ficha.id = nextFichasID;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
         system("cls");
         printf("Nova Ficha--> \nId: %d \nNome: %s \nNumero de Exercicios: %d \nData de Publicacao: %02d/%02d/%d \n\n\n", ficha.id, ficha.nome, ficha.numEx, ficha.dataPubl.dia, ficha.dataPubl.mes, ficha.dataPubl.ano);
@@ -694,94 +703,7 @@ void gestaoFichasRegisterQuestions(int passo, Ficha *ficha){
                         printf("Insira apenas entre (1-99): ");
                 }while((*ficha).numEx < 1 || (*ficha).numEx > 99);
                 break;
-            case 2:
-                printf("Insira a Data-->");
-                (*ficha).dataPubl = gestaoFichasRegisterQuestionData();
-                break;
         }
-}
-
-Data gestaoFichasRegisterQuestionData(){
-    Data data;
-    for(int i = 0; i < 3; i++){
-        switch (i)
-        {
-            case 0:
-                printf("\nAno (1900-2025): ");
-                data.ano = gestaoFichasRegisterQuestionDataAuxiliar(i, data.mes, data.ano);
-                break;
-            case 1:
-                printf("\nMes (1-12): ");
-                data.mes = gestaoFichasRegisterQuestionDataAuxiliar(i, data.mes, data.ano);
-                break;
-            case 2:
-                printf("\nDia (1-31): ");
-                data.dia = gestaoFichasRegisterQuestionDataAuxiliar(i, data.mes, data.ano);
-                break;
-        }
-    }
-    return data;
-}
-
-int gestaoFichasRegisterQuestionDataAuxiliar(int passo, int mes, int ano){
-    int input = 0, aux = 0;
-    do{
-        aux = 0;
-        scanf("%d", &input);
-        switch (passo)
-        {
-            case 0:
-                if(input < 1900 || input > 2025){
-                    printf("Porfavor insira um ano entre 1900 e 2025: ");
-                    aux = 1;
-                }
-                break;
-            case 1:
-                if(input < 1 || input > 12){
-                    printf("Porfavor insira um mes entre 1 e 12: ");
-                    aux = 1;
-                }
-                break;
-            case 2:
-                aux = gestaoFichasRegisterQuestionDataAuxiliarDayTests(aux, mes, ano, input);
-                break;
-        }
-    }while(aux != 0);
-    return input;
-}
-
-int isAnoBissexto(int year) {
-    if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
-        return 1; //ano bissexto 29 dias
-    }
-    return 0;
-}
-
-int gestaoFichasRegisterQuestionDataAuxiliarDayTests(int aux, int mes, int ano, int input){
-    if(input < 1 || input > 31){
-        printf("Porfavor insira um dia entre 1 e 31: ");
-        aux = 1;
-    }else{
-        if(mes == 2){
-            if(input > 29 || input < 1){
-                printf("Porfavor insira um dia entre 1 e 29 pois o mes inserido so pode ter 29 dias: ");
-                aux = 1;
-            }else{
-                if(input > 28){
-                    if(isAnoBissexto(ano) == 0){
-                        printf("Porfavor insira um dia entre 1 e 28 pois o ano inserido nao e bissexto: ");
-                        aux = 1;
-                    }
-                }
-            }
-        }else if(mes == 4 || mes == 6 || mes == 9 || mes == 11){
-            if(input < 1 || input > 30){
-                printf("Porfavor insira um dia entre 1 e 30 pois o mes inserido so tem 30 dias: ");
-                aux = 1;
-            }
-        }
-    }
-    return aux;
 }
 
 void gestaoFichasRegisterGuardar(Ficha ficha){
@@ -809,28 +731,16 @@ void mainGestaoSubmissoes() {
                 while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
                 getchar(); 
                 break;
-
             case 2:
-                //gestaoExercicosRegister();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar(); 
+                gestaoSubmissoesRegister();
                 break;
-
-            case 3:
-            case 4:
-                printf("Opcao nao disponivel. Ainda esta em desenvolvimento");
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar();      
-                break;
-            
             case 0:
                 return ;
                 break;
-
+            case 3:
+            case 4:
             default:
-                printf("Opcao invalida\n");
+                opcaoIndisponivel();
                 break;
         }
     }while (opcao != 0);
@@ -870,6 +780,138 @@ void gestaoSubmissoesListAll(){
         printf("Tipo: %d\n", submissao.nota);
         printf("--------------------\n");
     }
+}
+
+void gestaoSubmissoesRegister(){
+    Data data = getCurrentDate();
+    Submissao submissao = {0, 0, 0, 0, data, 0, 0};
+    submissao.id = nextSubmissoesID;
+
+    for (int i = 0; i < 6; i++)
+    {
+        system("cls");
+        printf("Nova Submissao--> \nId: %d \nId do Estudante: %d \nId da Ficha: %d \nId do Exercicio: %d \nData da Submissao: %02d/%02d/%d \nLinhasSol: %d \nNota: %d \n\n\n", submissao.id, submissao.estudanteID, submissao.fichaiD, submissao.exercID, submissao.dataSub.dia, submissao.dataSub.mes, submissao.dataSub.ano, submissao.linhasSol, submissao.nota);
+        gestaoSubmissoesRegisterQuestions(i, &submissao);
+    }
+    char output;
+    do{
+        printf("Deseja guardar a nova submissao? (S/n)");
+        scanf(" %c", &output);
+        if(output != 'S' && output != 'n' && output != 's' && output != 'N')
+            printf("\nPorfavor insira apenas (S/n)\n\n");
+    }while(output != 'S' && output != 'n' && output != 's' && output != 'N');
+    if(output == 's' || output == 'S')
+        gestaoSubmissoesRegisterGuardar(submissao);
+}
+
+Data getCurrentDate(){
+    Data data = {};
+    time_t now = time(NULL);
+    struct tm *current_time = localtime(&now);
+
+    data.dia =  current_time->tm_mday;
+    data.mes =  current_time->tm_mon + 1;
+    data.ano =  current_time->tm_year + 1900;
+
+    return data;
+}
+
+void gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao){
+    switch (passo)
+    {
+        case 0:
+            printf("Insira o Id do Estudante: ");
+            (*submissao).estudanteID = gestaoSubmissoesRegisterQuestionIdEstudante();
+            break;
+        case 1:
+            printf("Insira o Id da Ficha: ");
+            (*submissao).fichaiD = gestaoExerciciosRegisterQuestionIdFicha();
+            break;
+        case 2:
+            printf("Insira o Id do Exercicio: ");
+            (*submissao).exercID = gestaoSubmissoesRegisterQuestionIdExercicioExiste((*submissao).fichaiD);
+            break;
+        case 3:
+            printf("Insira o linhasSol: ");
+            
+            break;
+        case 4:
+            printf("Insira a Nota: ");
+            
+            break;
+    }
+}
+
+int gestaoSubmissoesRegisterQuestionIdEstudante(){
+    int input, aux = 0;
+    do
+    {
+        scanf("%d", &input);
+        Estudante estudante;
+        rewind(ficheiroEstudantes); //para tipo voltar ao primeiro id
+        while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes) == 1) {
+            if(input == estudante.id){
+                aux = 1;
+                break;;
+            }
+        }
+        if(aux == 0){
+            printf("Nao foi possivel encontrar um estudante com esse ID.");
+            printf("\nPorfavor insira novamente um ID: ");
+        }
+    } while (aux != 1);
+
+    return input;
+}
+
+int gestaoSubmissoesRegisterQuestionIdExercicioExiste(int idFicha){
+    int input, aux = 0;
+    do
+    {
+        scanf("%d", &input);
+        Ficha ficha;
+        rewind(ficheiroFichas); //para tipo voltar ao primeiro id
+        while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
+            if(input == ficha.id){
+                aux = 1;
+                break;;
+            }
+        }
+        if(aux == 0){
+            printf("Nao foi possivel encontrar uma ficha com esse ID.");
+            printf("\nPorfavor insira novamente um ID: ");
+        }else{
+            aux = gestaoSubmissoesRegisterQuestionIdExercicioDaFicha(input, idFicha);
+        }
+    } while (aux != 1);
+    return input;
+}
+
+int gestaoSubmissoesRegisterQuestionIdExercicioDaFicha(int idExer, int idFicha){
+    int input, aux = 0;
+    Exercicio exercicio;
+    rewind(ficheiroExercicios); //para tipo voltar ao primeiro id
+    while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios) == 1) {
+        if(exercicio.id == idExer){
+            if(exercicio.fichaID == idFicha){
+                aux = 1;
+                break;;
+            }
+            break;
+        }
+    }
+    if(aux == 0){
+        printf("A Ficha inserida anteriormente nao contem esse exercicio.");
+        printf("\nPorfavor insira outro ID de exercicio: ");
+    }
+    return aux;
+}
+
+void gestaoSubmissoesRegisterGuardar(Submissao submissao){
+    fwrite(&submissao, sizeof(Submissao), 1, ficheiroSubmissoes);
+    fflush(ficheiroSubmissoes);
+    nextSubmissoesID++;
+    printf("\nSubmissao guardada com Sucesso!");
 }
 
 #pragma endregion
