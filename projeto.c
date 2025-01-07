@@ -140,6 +140,7 @@ int estatisticasSearchEstudantesMain(Estudante *estudante);
 int estatisticasSearchEstudante(int input, Estudante *estudante);
 void estatisticasGetNumOfSubmissoes(Estudante *estudante, int *numSubmissoes, float *mediaDasNotas, float *percentagemExer);
 int estatisticasGetExerciciosInFicha(int idFicha);
+int getNumInputEstatisticas(int *validInt,  int maxLength);
 
 void saveData();
 
@@ -162,7 +163,7 @@ int mainMenu() {
     printf("3. Gestao de Fichas\n");
     printf("4. Gestao de Submissoes\n");
     printf("5. Estatisticas\n");
-    printf("6. Guardar Dados\n");
+    //printf("6. Guardar Dados\n");
     printf("7. Carregar Dados\n");
     printf("0. Sair\n");
     printf("Escolha uma opcao: ");
@@ -208,9 +209,6 @@ void main() {
                 break;
             case 5:
                 mainEstatisticas();
-                break;
-            case 6:
-                saveData();
                 break;
             case 7:
                 opcao = loadData();
@@ -644,15 +642,19 @@ int menuGestaoExercicios(){
 
 void gestaoExercicosListAll(){
     Exercicio exercicio;
-    rewind(ficheiroExercicios); //para tipo voltar ao primeiro id
-    while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios) == 1) {
-        printf("ID: %d\n", exercicio.id);
-        printf("ID da Ficha: %d\n", exercicio.fichaID);
-        printf("Nome: %s\n", exercicio.nome);
-        printf("Dificuldade: %s\n", exercicio.difuculdade);
-        printf("Tipo: %s\n", exercicio.tipoSol);
-        printf("--------------------\n");
+    rewind(ficheiroExercicios);
+    
+    printf("+----+-------+------------------------------+-------------+--------------+\n");
+    printf("| ID | Ficha | Nome                         | Dificuldade | Tipo Solucao |\n");
+    printf("+----+-------+------------------------------+-------------+--------------+\n");
+
+    while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios) == 1) { 
+        printf("| %-2d | %-5d | %-28.28s | %-11.11s | %-11.11s  |\n", 
+            exercicio.id, exercicio.fichaID, exercicio.nome, exercicio.difuculdade, exercicio.tipoSol);
     }
+
+    printf("+----+-------+------------------------------+-------------+--------------+\n");
+
     printf("\n(Pressione ENTER para continuar) ");
     while (getchar() != '\n');
     getchar(); 
@@ -812,6 +814,20 @@ void gestaoExerciciosRegisterGuardar(Exercicio exercicio){
     fwrite(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios);
     fflush(ficheiroExercicios);
     nextExerciciosID++;
+
+    Ficha ficha;
+    rewind(ficheiroFichas);
+    while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
+        if(exercicio.fichaID == ficha.id){
+            ficha.numEx++;
+            fseek(ficheiroFichas, -sizeof(Ficha), SEEK_CUR);
+            if (fwrite(&ficha, sizeof(Ficha), 1, ficheiroFichas) != 1) {
+                //erro
+            }
+            break;;
+        }
+    }
+
     printf("\nExercicio guardado com Sucesso!");
 }
 
@@ -869,14 +885,19 @@ int menuGestaoFichas(){
 
 void gestaoFichasListAll(){
     Ficha ficha;
-    rewind(ficheiroFichas); //para tipo voltar ao primeiro id
-    while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
-        printf("ID: %d\n", ficha.id);
-        printf("Nome da Fichas: %s\n", ficha.nome);
-        printf("Numero de Exercicios: %d\n", ficha.numEx);
-        printf("Datade Publicacao: %02d/%02d/%d\n", ficha.dataPubl.dia, ficha.dataPubl.mes, ficha.dataPubl.ano);
-        printf("--------------------\n");
+    rewind(ficheiroFichas);
+    
+    printf("+----+------------------------------+-------------------+------------+\n");
+    printf("| ID | Nome                         | Numero Exercicios | Data       |\n");
+    printf("+----+------------------------------+-------------------+------------+\n");
+
+    while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) { 
+        printf("| %-2d | %-28.28s | %-16d  | %02d/%02d/%04d |\n", 
+            ficha.id, ficha.nome, ficha.numEx, ficha.dataPubl.dia, ficha.dataPubl.mes, ficha.dataPubl.ano);
     }
+
+    printf("+----+------------------------------+-------------------+------------+\n");
+
     printf("\n(Pressione ENTER para continuar) ");
     while (getchar() != '\n');
     getchar(); 
@@ -887,10 +908,10 @@ void gestaoFichasRegister(){
     Ficha ficha = {0, "Indefenido", 0, data};
     ficha.id = nextFichasID;
     int returnQuestions = 1;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
         system("cls");
-        printf("Nova Ficha--> \nId: %d \nNome: %s \nNumero de Exercicios: %d \nData de Publicacao: %02d/%02d/%d \n\n\n", ficha.id, ficha.nome, ficha.numEx, ficha.dataPubl.dia, ficha.dataPubl.mes, ficha.dataPubl.ano);
+        printf("Nova Ficha--> \nId: %d \nNome: %s \nNumero de Exercicios: %d \nData de Publicacao: %02d/%02d/%d \n\n(Pressione TAB e depois ENTER para voltar)\n", ficha.id, ficha.nome, ficha.numEx, ficha.dataPubl.dia, ficha.dataPubl.mes, ficha.dataPubl.ano);
         returnQuestions = gestaoFichasRegisterQuestions(i, &ficha);
         if(returnQuestions != 1)
             break;
@@ -917,10 +938,6 @@ int gestaoFichasRegisterQuestions(int passo, Ficha *ficha){
             output = getStringInput((*ficha).nome, sizeof((*ficha).nome));
             break;
         case 1:
-            printf("Insira o Numero de Exercicios (1-99): ");
-            output = gestaoFichasRegisterQuestionNumExercicios(&(*ficha).numEx);
-            break;
-        case 2:
             if(gestaoFichasRegisterQuestionDataChangeQuestion() == 1){
                 while (getchar() != '\n');
                 output = gestaoFichasRegisterQuestionData(&(*ficha).dataPubl);
@@ -938,8 +955,8 @@ int gestaoFichasRegisterQuestionNumExercicios(int *input){
     do{
         auxOutputNumInput = getNumInput(&(*input), 3);
         if(auxOutputNumInput == 1){
-            if((*input) < 1 || (*input) > 99){
-                printf("Insira apenas entre (1-99): ");
+            if((*input) < 1 || (*input) > 10){
+                printf("Insira apenas entre (1-10): ");
             }else{
                 aux = 1;
             }
@@ -1119,17 +1136,21 @@ int menuGestaoSubmissoes(){
 
 void gestaoSubmissoesListAll(){
     Submissao submissao;
-    rewind(ficheiroSubmissoes); //para tipo voltar ao primeiro id
-    while (fread(&submissao, sizeof(Submissao), 1, ficheiroSubmissoes) == 1) {
-        printf("ID: %d\n", submissao.id);
-        printf("ID do Estudante: %d\n", submissao.estudanteID);
-        printf("ID da Ficha: %d\n", submissao.fichaiD);
-        printf("ID do Exercicio: %d\n", submissao.exercID);
-        printf("Datade Submissao: %02d/%02d/%d\n", submissao.dataSub.dia, submissao.dataSub.mes, submissao.dataSub.ano);
-        printf("Linhas de Solucao: %d\n", submissao.linhasSol);
-        printf("Tipo: %d\n", submissao.nota);
-        printf("--------------------\n");
+    rewind(ficheiroSubmissoes);
+    
+    printf("+----+------------+-------+-----------+------------+----------------+------+\n");
+    printf("| ID | Estudante  | Ficha | Exercicio | Data       | Linhas Solucao | Nota |\n");
+    printf("+----+------------+-------+-----------+------------+----------------+------+\n");
+
+    while (fread(&submissao, sizeof(Submissao), 1, ficheiroSubmissoes) == 1) { 
+        printf("| %-2d | %-10d | %-5d | %-5d     | %02d/%02d/%04d | %-12d   | %-4d |\n", 
+            submissao.id, submissao.estudanteID, submissao.fichaiD, submissao.exercID, 
+            submissao.dataSub.dia, submissao.dataSub.mes, submissao.dataSub.ano, 
+            submissao.linhasSol, submissao.nota);
     }
+
+    printf("+----+------------+-------+-----------+------------+----------------+------+\n");
+
     printf("\n(Pressione ENTER para continuar) ");
     while (getchar() != '\n');
     getchar(); 
@@ -1143,7 +1164,7 @@ void gestaoSubmissoesRegister(){
     for (int i = 0; i < 7; i++)
     {
         system("cls");
-        printf("Nova Submissao--> \nId: %d \nId do Estudante: %d \nId da Ficha: %d \nId do Exercicio: %d \nData da Submissao: %02d/%02d/%d \nLinhasSol: %d \nNota: %d \n\n\n", submissao.id, submissao.estudanteID, submissao.fichaiD, submissao.exercID, submissao.dataSub.dia, submissao.dataSub.mes, submissao.dataSub.ano, submissao.linhasSol, submissao.nota);
+        printf("Nova Submissao--> \nId: %d \nId do Estudante: %d \nId da Ficha: %d \nId do Exercicio: %d \nData da Submissao: %02d/%02d/%d \nLinhasSol: %d \nNota: %d \n\n(Pressione TAB e depois ENTER para voltar)\n", submissao.id, submissao.estudanteID, submissao.fichaiD, submissao.exercID, submissao.dataSub.dia, submissao.dataSub.mes, submissao.dataSub.ano, submissao.linhasSol, submissao.nota);
         returnQuestions = gestaoSubmissoesRegisterQuestions(i, &submissao);
         if(returnQuestions != 1)
             break;
@@ -1364,6 +1385,8 @@ void gestaoSubmissoesRegisterGuardar(Submissao submissao){
 
 //-------------------------------------------------------------------------------------------------------------------------------
 
+#pragma region Estatisticas
+
 void mainEstatisticas() {
     Estudante estudante;
     int output = estatisticasSearchEstudantesMain(&estudante);
@@ -1378,8 +1401,8 @@ void mainEstatisticas() {
         printf("\nEmail do Estudante: %s", estudante.email);
         printf("\n\n--------------Estatisticas--------------");
         printf("\nTotal de Submissoes do Estudante: %d", numSubmissoes);
-        printf("\nMedia das Notas das Submissoes: %f", mediaDasNotas);
-        printf("\nPercentagem de Exercicios Resolvidos: %f", percentagemExer);
+        printf("\nMedia das Notas das Submissoes: %.2f", mediaDasNotas);
+        printf("\nPercentagem de Exercicios Resolvidos: %.2f", percentagemExer);
         printf("\n\n(Pressione ENTER para continuar) ");
         getchar();
         system("cls");
@@ -1389,7 +1412,7 @@ void mainEstatisticas() {
 int estatisticasSearchEstudantesMain(Estudante *estudante){
     int outputSearch = 0, numEstudante, output;
     do{
-        output = getNumInput(&numEstudante, 8);
+        output = getNumInputEstatisticas(&numEstudante, 8);
         if(output == 2){
             outputSearch = 1;
             break;
@@ -1431,7 +1454,7 @@ void estatisticasGetNumOfSubmissoes(Estudante *estudante, int *numSubmissoes, fl
         }
     }
     if (numExerciciosSub != 0) {
-        *percentagemExer = ((float)numExerciciosSub / numExe) * 100;
+        *percentagemExer = ((float)numExerciciosSub) / numExe * 100;
     } else {
         *percentagemExer = 0;
     }
@@ -1449,6 +1472,32 @@ int estatisticasGetExerciciosInFicha(int idFicha){
     }
     return count;
 }
+
+int getNumInputEstatisticas(int *validInt,  int maxLength){
+    char str[20], input;
+    int index = 0, aux = 0;
+    do{
+        input = getchar();
+        if (input == '\t') { // Tab pressionado
+            aux = 2;
+        } else if (input == '\n') { // Enter pressionado
+            str[index] = '\0';
+            if (isInt(str)) {
+                aux = 1;
+                int ya = atoi(str);
+                (*validInt) = ya;
+            } else {
+                printf("Porfavor o numero do Estudante: ");
+                index = 0; 
+            }
+        } else if (index < maxLength) {
+            str[index++] = input;
+        }
+    }while(aux != 1 && aux != 2);
+    return aux;
+}
+
+#pragma endregion
 
 //-------------------------------------------------------------------------------------------------------------------------------
 
