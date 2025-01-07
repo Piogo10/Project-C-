@@ -123,10 +123,11 @@ void gestaoSubmissoesRegister();
 Data getCurrentDate();
 int gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao);
 int gestaoSubmissoesRegisterQuestionIdEstudante();
-int gestaoSubmissoesRegisterQuestionIdExercicioExiste(int idFicha);
+int gestaoSubmissoesRegisterQuestionIdExercicioExiste(int idFicha, int *exerID);
 int gestaoSubmissoesRegisterQuestionIdExercicioDaFicha(int idExer, int idFicha);
 int gestaoSubmissoesRegisterQuestionLinhasSolucao(int *input);
 int gestaoSubmissoesRegisterQuestionNota(int *input);
+int gestaoSubmissoesRegisterQuestionData(Data *data);
 void gestaoSubmissoesRegisterGuardar(Submissao submissao);
 
 void estatisticas();
@@ -1055,11 +1056,13 @@ void gestaoSubmissoesRegister(){
     Submissao submissao = {0, 0, 0, 0, data, 0, 0};
     submissao.id = nextSubmissoesID;
     int returnQuestions = 1;
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 7; i++)
     {
         system("cls");
         printf("Nova Submissao--> \nId: %d \nId do Estudante: %d \nId da Ficha: %d \nId do Exercicio: %d \nData da Submissao: %02d/%02d/%d \nLinhasSol: %d \nNota: %d \n\n\n", submissao.id, submissao.estudanteID, submissao.fichaiD, submissao.exercID, submissao.dataSub.dia, submissao.dataSub.mes, submissao.dataSub.ano, submissao.linhasSol, submissao.nota);
         returnQuestions = gestaoSubmissoesRegisterQuestions(i, &submissao);
+        if(returnQuestions != 1)
+            break;
     }
     if(returnQuestions != 0){
         char output;
@@ -1088,11 +1091,10 @@ Data getCurrentDate(){
 
 int gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao){
     int aux = 1, output = 1;
-    switch (passo)
-    {
+    switch (passo){
         case 0:
             printf("Insira o Id do Estudante: ");
-            (*submissao).estudanteID = gestaoSubmissoesRegisterQuestionIdEstudante();
+            output = gestaoSubmissoesRegisterQuestionIdEstudante(&(*submissao).estudanteID);
             break;
         case 1:
             printf("Insira o Id da Ficha: ");
@@ -1100,7 +1102,7 @@ int gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao){
             break;
         case 2:
             printf("Insira o Id do Exercicio: ");
-            (*submissao).exercID = gestaoSubmissoesRegisterQuestionIdExercicioExiste((*submissao).fichaiD);
+            output = gestaoSubmissoesRegisterQuestionIdExercicioExiste((*submissao).fichaiD, &(*submissao).exercID);
             break;
         case 3:
             printf("Insira o Linhas de Solucao (1-100): ");
@@ -1110,22 +1112,28 @@ int gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao){
             printf("Insira a Nota (0-100): ");
             output = gestaoSubmissoesRegisterQuestionNota(&(*submissao).nota);
             break;
+        case 5:
+            if(gestaoFichasRegisterQuestionDataChangeQuestion() == 1){
+                while (getchar() != '\n');
+                output = gestaoSubmissoesRegisterQuestionData(&(*submissao).dataSub);
+            }
+            break;
     }
-    if(output != 0){
+    if(output == 2){
         aux = 0;
     }
     return aux;
 }
 
-int gestaoSubmissoesRegisterQuestionIdEstudante(){
-    int input, aux = 0;
-    do
-    {
-        scanf("%d", &input);
+int gestaoSubmissoesRegisterQuestionIdEstudante(int *estudanteId){
+    while (getchar() != '\n');
+    int aux = 0, auxOutputNumInput;
+    do{
+        auxOutputNumInput = getNumInput(&(*estudanteId), 3);
         Estudante estudante;
         rewind(ficheiroEstudantes); //para tipo voltar ao primeiro id
         while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes) == 1) {
-            if(input == estudante.id){
+            if((*estudanteId) == estudante.id){
                 aux = 1;
                 break;;
             }
@@ -1135,31 +1143,33 @@ int gestaoSubmissoesRegisterQuestionIdEstudante(){
             printf("\nPorfavor insira novamente um ID: ");
         }
     } while (aux != 1);
-
-    return input;
+    return auxOutputNumInput;
 }
 
-int gestaoSubmissoesRegisterQuestionIdExercicioExiste(int idFicha){
-    int input, aux = 0;
-    do
-    {
-        scanf("%d", &input);
-        Ficha ficha;
-        rewind(ficheiroFichas); //para tipo voltar ao primeiro id
-        while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
-            if(input == ficha.id){
-                aux = 1;
-                break;;
+int gestaoSubmissoesRegisterQuestionIdExercicioExiste(int idFicha, int *exerID){
+    int aux = 0, auxOutputNumInput;
+    do{
+        auxOutputNumInput = getNumInput(&(*exerID), 3);
+        if(auxOutputNumInput == 1){
+            Exercicio exercicio;
+            rewind(ficheiroExercicios); //para tipo voltar ao primeiro id
+            while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios) == 1) {
+                if((*exerID) == exercicio.id){
+                    aux = 1;
+                    break;;
+                }
             }
-        }
-        if(aux == 0){
-            printf("Nao foi possivel encontrar uma ficha com esse ID.");
-            printf("\nPorfavor insira novamente um ID: ");
+            if(aux == 0){
+                printf("Nao foi possivel encontrar um exercicio com esse ID.");
+                printf("\nPorfavor insira novamente um ID: ");
+            }else{
+                aux = gestaoSubmissoesRegisterQuestionIdExercicioDaFicha((*exerID), idFicha);
+            }
         }else{
-            aux = gestaoSubmissoesRegisterQuestionIdExercicioDaFicha(input, idFicha);
+            break;
         }
     } while (aux != 1);
-    return input;
+    return auxOutputNumInput;
 }
 
 int gestaoSubmissoesRegisterQuestionIdExercicioDaFicha(int idExer, int idFicha){
@@ -1197,7 +1207,7 @@ int gestaoSubmissoesRegisterQuestionLinhasSolucao(int *input){
 }
 
 int gestaoSubmissoesRegisterQuestionNota(int *input){
-   int aux = 0;
+    int aux = 0;
     do{
         aux = getNumInput(&(*input), 4);
         if(aux == 1){
@@ -1208,6 +1218,34 @@ int gestaoSubmissoesRegisterQuestionNota(int *input){
         }
     }while((*input) < 0 || (*input) > 100);
     return aux;
+}
+
+int gestaoSubmissoesRegisterQuestionData(Data *data){
+    int aux = 0, auxOutputNumInput, inputInt = 0;
+    do{
+         for(int i = 0; i < 3; i++){
+            switch (i){
+                case 0:
+                    printf("\nAno (1900-2025): ");
+                    auxOutputNumInput = gestaoFichasRegisterQuestionDataAuxiliar(i, &(*data).dia, &(*data).mes, &(*data).ano);
+                    break;
+                case 1:
+                    printf("\nMes (1-12): ");
+                    auxOutputNumInput = gestaoFichasRegisterQuestionDataAuxiliar(i, &(*data).dia, &(*data).mes, &(*data).ano);
+                    break;
+                case 2:
+                    printf("\nDia (1-31): ");
+                    auxOutputNumInput = gestaoFichasRegisterQuestionDataAuxiliar(i, &(*data).dia, &(*data).mes, &(*data).ano);
+                    aux = 1;
+                    break;
+            }
+            if(auxOutputNumInput == 2){
+                aux = 1;
+                break;
+            }
+        }
+    } while (aux != 1);
+    return auxOutputNumInput;
 }
 
 void gestaoSubmissoesRegisterGuardar(Submissao submissao){
