@@ -90,7 +90,10 @@ void gestaoEstudantesListAll();
 void gestaoEstudantesRegister();
 int gestaoEstudantesRegisterQuestions(int passo, Estudante *estudante);
 int gestaoEstudantesRegisterQuestionNumber();
+int gestaoEstudantesRegisterQuestionNumberCheckIfItsInUse(int input);
 int gestaoEstudantesRegisterQuestionEmail(char *input, int maxLength);
+int gestaoEstudantesRegisterQuestionEmailSecondPart(char *input, char *fimDoEmail);
+int gestaoEstudantesRegisterQuestionEmailCheckIfItsInUse(char *input);
 void gestaoEstudantesRegisterGuardar(Estudante estudante);
 
 void mainGestaoExercicios();
@@ -99,6 +102,7 @@ void gestaoExercicosListAll();
 void gestaoExercicosRegister();
 int gestaoExerciciosRegisterQuestions(int passo, Exercicio *exercicio);
 int gestaoExerciciosRegisterQuestionIdFicha(int *input);
+int gestaoExerciciosRegisterQuestionIdFichaCheckAmountOfExercicios(int *idFicha);
 int gestaoExerciciosRegisterQuestionDificulty(char *input);
 int gestaoExerciciosRegisterQuestionTypeSol(char *input);
 void gestaoExerciciosRegisterGuardar(Exercicio exercicio);
@@ -123,6 +127,7 @@ void gestaoSubmissoesRegister();
 Data getCurrentDate();
 int gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao);
 int gestaoSubmissoesRegisterQuestionIdEstudante();
+int gestaoSubmissoesRegisterQuestionIdFicha(int *input);
 int gestaoSubmissoesRegisterQuestionIdExercicioExiste(int idFicha, int *exerID);
 int gestaoSubmissoesRegisterQuestionIdExercicioDaFicha(int idExer, int idFicha);
 int gestaoSubmissoesRegisterQuestionLinhasSolucao(int *input);
@@ -139,6 +144,7 @@ void fetchOnSuccessLoadData();
 int getStringInput(char *str, int maxLength);
 int getNumInput(int *validInt, int maxLength);
 int isInt(char *str);
+void maxOfTheItem(char *itemName, int max);
 
 int mainMenu() {
     char opcao;
@@ -379,12 +385,12 @@ void mainGestaoEstudantes() {
         switch (opcao){
             case 1:
                 gestaoEstudantesListAll();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n');
-                getchar(); 
                 break;
             case 2:
-                gestaoEstudantesRegister();
+                if(nextEstudanteID > 100){
+                    maxOfTheItem("Estudantes", 100);
+                }else
+                    gestaoEstudantesRegister();
                 break;
             case 0:
                 return ;
@@ -426,6 +432,9 @@ void gestaoEstudantesListAll(){
         printf("Email: %s\n", estudante.email);
         printf("--------------------\n");
     }
+    printf("\n(Pressione ENTER para continuar) ");
+    while (getchar() != '\n');
+    getchar(); 
 }
 
 void gestaoEstudantesRegister(){
@@ -455,15 +464,19 @@ void gestaoEstudantesRegister(){
 
 int gestaoEstudantesRegisterQuestions(int passo, Estudante *estudante){
     int aux = 1, output = 1;
-    switch (passo)
-    {
+    switch (passo){
         case 0:
             printf("Insira o Numero do Estudante (2241000-2241999): ");
+            while (getchar() != '\n');
             output = gestaoEstudantesRegisterQuestionNumber(&(*estudante).numero);
             break;
         case 1:
             printf("Insira o Nome: ");
-            output = getStringInput((*estudante).nome, sizeof((*estudante).nome));
+            do{
+                output = getStringInput((*estudante).nome, sizeof((*estudante).nome));
+                if (strlen((*estudante).nome) < 1 && output != 2)
+                    printf("Nome invalido insira novamente: ");
+            } while (strlen((*estudante).nome) < 1 && output != 2);
             break;
         case 2:
             printf("Insira o Email (exemplo@my.ipleiria.pt): ");
@@ -483,7 +496,9 @@ int gestaoEstudantesRegisterQuestionNumber(int *input){
         auxOutputNumInput = getNumInput(&(*input), 8);
         if(auxOutputNumInput == 1){
             if((*input) < 2241000 || (*input) > 2242000){
-                printf("Porfavor insira um numero entre 2241000 e 2242000.\n");
+                printf("Porfavor insira um numero entre 2241000 e 2242000: ");
+            }else if(gestaoEstudantesRegisterQuestionNumberCheckIfItsInUse((*input)) == 1){
+                printf("O Numero inserido ja esta a ser usado. Insira outro Numero: ");
             }else{
                 aux = 0;
             }
@@ -494,32 +509,69 @@ int gestaoEstudantesRegisterQuestionNumber(int *input){
     return auxOutputNumInput;
 }
 
+int gestaoEstudantesRegisterQuestionNumberCheckIfItsInUse(int input){
+    int existe = 0;
+    Estudante estudante;
+    rewind(ficheiroEstudantes); //para tipo voltar ao primeiro id
+    while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes) == 1) {
+        if(estudante.numero == input){
+            existe = 1;
+            break;;
+        }
+    }
+    return existe;
+}
+
 int gestaoEstudantesRegisterQuestionEmail(char *input, int maxLength){
     int aux = 0;
     char fimDoEmail[18] = "@my.ipleiria.pt";
     do{
         int output = getStringInput(input, maxLength);
-        if(output != 0){
+        if(output == 2){
             aux = 2;
         }else{
-            int auxForTeste = 0;
-            for (int i = 0; i < strlen(input); i++){
-                if(input[i] == '@'){
-                    auxForTeste = i;
-                    break;
-                }
-            }
-            if(auxForTeste != 0){
-                char finalDoInput[strlen(input) - auxForTeste + 1];
-                strcpy(finalDoInput, input + auxForTeste);
-                if(strcmp(fimDoEmail, finalDoInput) == 0){
-                    aux = 1;
-                }else
-                    printf("O email inserido nao e valido (exemplo@my.ipleiria.pt): ");
-            }
+            aux = gestaoEstudantesRegisterQuestionEmailSecondPart(&(*input), &(*fimDoEmail));
         }
     } while (aux != 1 && aux != 2);
     return aux;
+}
+
+int gestaoEstudantesRegisterQuestionEmailSecondPart(char *input, char *fimDoEmail){
+    int auxForTeste = 0, aux;
+    for (int i = 0; i < strlen(input); i++){
+        if(input[i] == '@'){
+            auxForTeste = i;
+            break;
+        }
+    }
+    if(auxForTeste != 0){
+        char finalDoInput[strlen(input) - auxForTeste + 1];
+        strcpy(finalDoInput, input + auxForTeste);
+        if(strcmp(fimDoEmail, finalDoInput) == 0){
+            if(gestaoEstudantesRegisterQuestionEmailCheckIfItsInUse(&(*input)) == 1){
+                printf("O email inserido ja foi inserido anteriormente. Insira outro (exemplo@my.ipleiria.pt): ");
+            }else{
+                aux = 1;
+            }
+        }else
+            printf("O email inserido nao e valido (exemplo@my.ipleiria.pt): ");
+    }else{
+        printf("O email inserido nao e valido (exemplo@my.ipleiria.pt): ");
+    }
+    return aux;
+}
+
+int gestaoEstudantesRegisterQuestionEmailCheckIfItsInUse(char *input){
+    int existe = 0;
+    Estudante estudante;
+    rewind(ficheiroEstudantes); //para tipo voltar ao primeiro id
+    while (fread(&estudante, sizeof(Estudante), 1, ficheiroEstudantes) == 1) {
+        if(strcmp(estudante.email, input) == 0){
+            existe = 1;
+            break;
+        }
+    }
+    return existe;
 }
 
 void gestaoEstudantesRegisterGuardar(Estudante estudante){
@@ -543,12 +595,12 @@ void mainGestaoExercicios() {
         switch (opcao){
             case 1:
                 gestaoExercicosListAll();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar(); 
                 break;
             case 2:
-                gestaoExercicosRegister();
+                if(nextExerciciosID > 100){
+                    maxOfTheItem("Exercicios", 100);
+                }else
+                    gestaoExercicosRegister();
                 break;
             case 0:
                 return ;
@@ -583,9 +635,7 @@ int menuGestaoExercicios(){
 
 void gestaoExercicosListAll(){
     Exercicio exercicio;
-
     rewind(ficheiroExercicios); //para tipo voltar ao primeiro id
-
     while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios) == 1) {
         printf("ID: %d\n", exercicio.id);
         printf("ID da Ficha: %d\n", exercicio.fichaID);
@@ -594,6 +644,9 @@ void gestaoExercicosListAll(){
         printf("Tipo: %s\n", exercicio.tipoSol);
         printf("--------------------\n");
     }
+    printf("\n(Pressione ENTER para continuar) ");
+    while (getchar() != '\n');
+    getchar(); 
 }
 
 void gestaoExercicosRegister(){
@@ -625,6 +678,7 @@ int gestaoExerciciosRegisterQuestions(int passo, Exercicio *exercicio){
     int aux = 1, output = 1;
     switch (passo){
         case 0:
+            while (getchar() != '\n');
             printf("Insira o Id da Ficha: ");
             output = gestaoExerciciosRegisterQuestionIdFicha(&(*exercicio).fichaID);
             break;
@@ -664,12 +718,31 @@ int gestaoExerciciosRegisterQuestionIdFicha(int *input){
             if(aux == 0){
                 printf("Nao foi possivel encontrar uma ficha com esse ID.");
                 printf("\nPorfavor insira novamente um ID: ");
+            }else if(gestaoExerciciosRegisterQuestionIdFichaCheckAmountOfExercicios(&(*input)) == 0){
+                printf("Esta ficha atingiu o numero maximo de Exercicios (10).");
+                printf("\nPorfavor insira outro ID: ");
+                aux = 0;
             }
         }else{
             break;
         }
     } while (aux != 1);
     return auxOutputNumInput;
+}
+
+int gestaoExerciciosRegisterQuestionIdFichaCheckAmountOfExercicios(int *idFicha){
+    int count = 0, aux = 1;
+    Exercicio exercicio;
+    rewind(ficheiroExercicios);
+    while (fread(&exercicio, sizeof(Exercicio), 1, ficheiroExercicios) == 1) {
+        if((*idFicha) == exercicio.fichaID){
+            count++;
+        }
+    }
+    if(count >= 10){
+        aux = 0;
+    }
+    return aux;
 }
 
 int gestaoExerciciosRegisterQuestionDificulty(char *input){
@@ -747,12 +820,12 @@ void mainGestaoFichas() {
         switch (opcao){
             case 1:
                 gestaoFichasListAll();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar(); 
                 break;
             case 2:
-                gestaoFichasRegister();
+                if(nextSubmissoesID > 10){
+                    maxOfTheItem("Fichas", 10);
+                }else
+                    gestaoFichasRegister();
                 break;
             case 0:
                 return ;
@@ -787,9 +860,7 @@ int menuGestaoFichas(){
 
 void gestaoFichasListAll(){
     Ficha ficha;
-
     rewind(ficheiroFichas); //para tipo voltar ao primeiro id
-
     while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
         printf("ID: %d\n", ficha.id);
         printf("Nome da Fichas: %s\n", ficha.nome);
@@ -797,6 +868,9 @@ void gestaoFichasListAll(){
         printf("Datade Publicacao: %02d/%02d/%d\n", ficha.dataPubl.dia, ficha.dataPubl.mes, ficha.dataPubl.ano);
         printf("--------------------\n");
     }
+    printf("\n(Pressione ENTER para continuar) ");
+    while (getchar() != '\n');
+    getchar(); 
 }
 
 void gestaoFichasRegister(){
@@ -996,12 +1070,12 @@ void mainGestaoSubmissoes() {
         switch (opcao){
             case 1:
                 gestaoSubmissoesListAll();
-                printf("\n(Pressione ENTER para continuar) ");
-                while (getchar() != '\n'); // para funcionar o getchar (nao sei pq e preciso para ser sincero mas assim funciona e sem nao funciona)
-                getchar(); 
                 break;
             case 2:
-                gestaoSubmissoesRegister();
+                if(nextSubmissoesID > 10000){
+                    maxOfTheItem("Submissoes", 10000);
+                }else
+                    gestaoSubmissoesRegister();
                 break;
             case 0:
                 return ;
@@ -1036,9 +1110,7 @@ int menuGestaoSubmissoes(){
 
 void gestaoSubmissoesListAll(){
     Submissao submissao;
-
     rewind(ficheiroSubmissoes); //para tipo voltar ao primeiro id
-
     while (fread(&submissao, sizeof(Submissao), 1, ficheiroSubmissoes) == 1) {
         printf("ID: %d\n", submissao.id);
         printf("ID do Estudante: %d\n", submissao.estudanteID);
@@ -1049,6 +1121,9 @@ void gestaoSubmissoesListAll(){
         printf("Tipo: %d\n", submissao.nota);
         printf("--------------------\n");
     }
+    printf("\n(Pressione ENTER para continuar) ");
+    while (getchar() != '\n');
+    getchar(); 
 }
 
 void gestaoSubmissoesRegister(){
@@ -1098,7 +1173,7 @@ int gestaoSubmissoesRegisterQuestions(int passo, Submissao *submissao){
             break;
         case 1:
             printf("Insira o Id da Ficha: ");
-            output = gestaoExerciciosRegisterQuestionIdFicha(&(*submissao).fichaiD);
+            output = gestaoSubmissoesRegisterQuestionIdFicha(&(*submissao).fichaiD);
             break;
         case 2:
             printf("Insira o Id do Exercicio: ");
@@ -1141,6 +1216,31 @@ int gestaoSubmissoesRegisterQuestionIdEstudante(int *estudanteId){
         if(aux == 0){
             printf("Nao foi possivel encontrar um estudante com esse ID.");
             printf("\nPorfavor insira novamente um ID: ");
+        }
+    } while (aux != 1);
+    return auxOutputNumInput;
+}
+
+int gestaoSubmissoesRegisterQuestionIdFicha(int *input){
+    int aux = 0, auxOutputNumInput;
+    do
+    {
+        auxOutputNumInput = getNumInput(&(*input), 3);
+        if(auxOutputNumInput == 1){
+            Ficha ficha;
+            rewind(ficheiroFichas); //para tipo voltar ao primeiro id
+            while (fread(&ficha, sizeof(Ficha), 1, ficheiroFichas) == 1) {
+                if((*input) == ficha.id){
+                    aux = 1;
+                    break;;
+                }
+            }
+            if(aux == 0){
+                printf("Nao foi possivel encontrar uma ficha com esse ID.");
+                printf("\nPorfavor insira novamente um ID: ");
+            }
+        }else{
+            break;
         }
     } while (aux != 1);
     return auxOutputNumInput;
@@ -1363,4 +1463,11 @@ int isInt(char *str){
         str++;
     }
     return 1;
+}
+
+void maxOfTheItem(char *itemName, int max){
+    printf("Chegou ao maximo de %s. O maximo é %d", itemName, max);
+    printf("\n(Pressione ENTER para continuar) ");
+    while (getchar() != '\n');
+    getchar();
 }
